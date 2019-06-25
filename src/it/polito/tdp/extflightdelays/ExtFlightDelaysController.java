@@ -5,9 +5,16 @@
 package it.polito.tdp.extflightdelays;
 
 import java.net.URL;
+import java.util.List;
+import java.util.Observable;
 import java.util.ResourceBundle;
 
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
+
+import it.polito.tdp.extflightdelays.model.Airport;
 import it.polito.tdp.extflightdelays.model.Model;
+import it.polito.tdp.extflightdelays.model.Vicino;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
@@ -35,7 +42,7 @@ public class ExtFlightDelaysController {
     private Button btnAnalizza; // Value injected by FXMLLoader
 
     @FXML // fx:id="cmbBoxAeroportoPartenza"
-    private ComboBox<?> cmbBoxAeroportoPartenza; // Value injected by FXMLLoader
+    private ComboBox<Airport> cmbBoxAeroportoPartenza; // Value injected by FXMLLoader
 
     @FXML // fx:id="btnAeroportiConnessi"
     private Button btnAeroportiConnessi; // Value injected by FXMLLoader
@@ -48,12 +55,41 @@ public class ExtFlightDelaysController {
 
     @FXML
     void doAnalizzaAeroporti(ActionEvent event) {
-
+    	try {
+    		Integer voliMin = Integer.parseInt(voliMinimo.getText());
+    		model.creaGrafo(voliMin);
+    		txtResult.appendText(String.format("Grafo creato con %d vertici e %d archi\n", model.nVertici(), model.nArchi()));
+    		
+    		cmbBoxAeroportoPartenza.getItems().addAll(model.getAeroporti(voliMin));
+    		btnAnalizza.setDisable(false);
+            btnAeroportiConnessi.setDisable(false);
+            btnOttimizza.setDisable(true);
+            numeroOreTxtInput.setDisable(true);
+            voliMinimo.setDisable(false);
+    		
+    	}catch(NumberFormatException e) {
+    		txtResult.appendText("Deve inserire un numero intero reale\n");
+    		return;
+    	}
     }
 
     @FXML
     void doCalcolaAeroportiConnessi(ActionEvent event) {
-
+    	Airport aeroporto = cmbBoxAeroportoPartenza.getValue();
+    	if(cmbBoxAeroportoPartenza==null) {
+    		txtResult.appendText("E' necessario scegliere un aeroporto dal menu\n");
+    	}
+    	List<Vicino> vicini = model.getAdiacenti(aeroporto);
+    	for(Vicino v: vicini) {
+    		txtResult.appendText(v.toString()+ "\n");
+    	}
+    	
+    	btnAnalizza.setDisable(false);
+        btnAeroportiConnessi.setDisable(false);
+        btnOttimizza.setDisable(false);
+        numeroOreTxtInput.setDisable(false);
+        voliMinimo.setDisable(false);
+		
     }
 
     @FXML
@@ -70,7 +106,30 @@ public class ExtFlightDelaysController {
         assert btnAeroportiConnessi != null : "fx:id=\"btnAeroportiConnessi\" was not injected: check your FXML file 'ExtFlightDelays.fxml'.";
         assert numeroOreTxtInput != null : "fx:id=\"numeroOreTxtInput\" was not injected: check your FXML file 'ExtFlightDelays.fxml'.";
         assert btnOttimizza != null : "fx:id=\"btnOttimizza\" was not injected: check your FXML file 'ExtFlightDelays.fxml'.";
-
+        
+        btnAnalizza.setDisable(false);
+        btnAeroportiConnessi.setDisable(true);
+        btnOttimizza.setDisable(true);
+        numeroOreTxtInput.setDisable(true);
+        voliMinimo.setDisable(false);
+        //GESTIONE ERRORE: se l'utente cambia il numero min di voli
+        voliMinimo.textProperty().addListener((Observable, oldvalue, newvalue)-> {
+        	btnAnalizza.setDisable(false);
+            btnAeroportiConnessi.setDisable(true);
+            btnOttimizza.setDisable(true);
+            numeroOreTxtInput.setDisable(true);
+            voliMinimo.setDisable(false);
+            cmbBoxAeroportoPartenza.getItems().clear();
+        });
+        //GESTIONE ERRORE: se l'utente cambia l'aeroporto selezionato
+        cmbBoxAeroportoPartenza.getSelectionModel().selectedItemProperty().addListener((observable, oldvalue, newvalue)->{
+        	btnAnalizza.setDisable(false);
+            btnAeroportiConnessi.setDisable(false);
+            btnOttimizza.setDisable(true);
+            numeroOreTxtInput.setDisable(true);
+            voliMinimo.setDisable(false);
+        	
+        });
     }
     
     public void setModel(Model model) {
